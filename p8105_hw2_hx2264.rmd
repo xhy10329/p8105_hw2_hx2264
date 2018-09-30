@@ -1,0 +1,98 @@
+---
+title: "p8105_hw2_hx2264"
+author: "Hongyao Xie"
+date: "September 29, 2018"
+output: github_document
+---
+
+## Problem 1
+```{r}
+library(tidyverse)
+```
+
+```{r}
+transit_ori <- read_csv("../../data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
+  janitor::clean_names() 
+
+transit <- transit_ori[,c(2:20, 23)]
+transit[,"entry"] <- ifelse(transit[,"entry"] == "YES", TRUE, FALSE)
+
+head(transit)
+dim(transit)
+```
+
+There are "r dim(transit)[1]" rows and "r dim(transit)[2]" columns in the resulting dataset after cleaning up. The "r dim(transit)[2]" variables are: "r colnames(transit)". My data cleaning steps include: (1) convert column names to lower snake case; (2) select 19 required columns from the original dataset. (3) convert the entry variable from character to logical variable. The data isn't tidy so far as all routes were listed as separate variables.
+
+```{r}
+nrow(distinct(transit[,"station_name"]))
+```
+
+There are 356 distinct stations.
+
+
+```{r}
+ada_index <- which(transit[,"ada"] == TRUE)
+transit_ada_true <- transit[ada_index,]
+nrow(distinct(transit_ada_true[,"station_name"]))
+
+```
+
+There are 73 distinct stations that are ADA compliant.
+
+
+```{r}
+vending_no_index <- which(transit[,"vending"] == "NO")
+proportion_entrance <- (length(which(transit[vending_no_index,"entry"] == TRUE)) + length(which(transit[vending_no_index,"exit_only"] == "Yes")))/ nrow(transit[vending_no_index,"entry"]) 
+proportion_entrance
+
+```
+
+About $65.02\%$ of station entrances without vending allow entrance.
+
+
+```{r}
+transit_tidy <- gather(transit, key = route, value = name, route1:route11)
+
+a_train_index <- which(transit_tidy[,"name"] == "A")
+nrow(distinct(transit_tidy[a_train_index,"station_name"]))
+```
+
+56 distinct stations serve the A train.
+
+
+```{r}
+a_train_ada_index <- which(transit_tidy[a_train_index,"ada"] == TRUE)
+transit_tidy_a_train <- transit_tidy[a_train_index,]
+nrow(transit_tidy_a_train[a_train_ada_index,])
+```
+
+107 stations that serve the A train are ADA compliant.
+
+
+## Problem 2
+
+
+```{r}
+wheel <- readxl::read_excel("../../data/HealthyHarborWaterWheelTotals2017-9-26.xlsx", range = "A2:N362") 
+
+colnames(wheel) <- c("dumpster", "month", "year", "date", "weight", "volume", "plastic_bottles", "polystyrene", "cigarette_butts", "glass_bottles", "grocery_bags", "chip_bags", "sports_balls", "homes_powered")
+
+wheel
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
