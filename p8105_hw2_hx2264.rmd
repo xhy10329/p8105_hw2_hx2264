@@ -14,7 +14,7 @@ library(tidyverse)
 transit_ori <- read_csv("../../data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
   janitor::clean_names() 
 
-transit <- transit_ori[,c(2:20, 23)]
+transit <- transit_ori[,c(2:18, 20, 23)]
 transit[,"entry"] <- ifelse(transit[,"entry"] == "YES", TRUE, FALSE)
 
 head(transit)
@@ -24,40 +24,47 @@ dim(transit)
 There are "r dim(transit)[1]" rows and "r dim(transit)[2]" columns in the resulting dataset after cleaning up. The "r dim(transit)[2]" variables are: "r colnames(transit)". My data cleaning steps include: (1) convert column names to lower snake case; (2) select 19 required columns from the original dataset. (3) convert the entry variable from character to logical variable. The data isn't tidy so far as all routes were listed as separate variables.
 
 ```{r}
-nrow(distinct(transit[,"station_name"]))
+nrow(distinct(transit, station_name, line, keep_all = TRUE))
 ```
 
-There are 356 distinct stations.
+There are 465 distinct stations.
 
 
 ```{r}
 ada_index <- which(transit[,"ada"] == TRUE)
 transit_ada_true <- transit[ada_index,]
-nrow(distinct(transit_ada_true[,"station_name"]))
+nrow(distinct(transit_ada_true, station_name, line, keep_all = TRUE))
 
 ```
 
-There are 73 distinct stations that are ADA compliant.
+There are 84 distinct stations that are ADA compliant.
 
 
 ```{r}
 vending_no_index <- which(transit[,"vending"] == "NO")
-proportion_entrance <- (length(which(transit[vending_no_index,"entry"] == TRUE)) + length(which(transit[vending_no_index,"exit_only"] == "Yes")))/ nrow(transit[vending_no_index,"entry"]) 
+proportion_entrance <- length(which(transit[vending_no_index,"entry"] == TRUE))/ nrow(transit[vending_no_index,"entry"]) 
 proportion_entrance
 
 ```
 
-About $65.02\%$ of station entrances without vending allow entrance.
+About $37.70\%$ of station entrances without vending allow entrance.
 
 
 ```{r}
+# ??
 transit_tidy <- gather(transit, key = route, value = name, route1:route11)
 
+name_NA <- which(!is.na(transit_tidy[,"name"]))
+
+
+View(transit_tidy)
+tail(transit_tidy)
+
 a_train_index <- which(transit_tidy[,"name"] == "A")
-nrow(distinct(transit_tidy[a_train_index,"station_name"]))
+nrow(distinct(transit_tidy[a_train_index,], station_name, line, keep_ALL = TRUE))
 ```
 
-56 distinct stations serve the A train.
+60 distinct stations serve the A train.
 
 
 ```{r}
@@ -73,20 +80,155 @@ nrow(transit_tidy_a_train[a_train_ada_index,])
 
 
 ```{r}
-wheel <- readxl::read_excel("../../data/HealthyHarborWaterWheelTotals2017-9-26.xlsx", range = "A2:N362") 
+wheel <- readxl::read_excel("../../data/HealthyHarborWaterWheelTotals2017-9-26.xlsx", range = "A2:N256") 
 
 colnames(wheel) <- c("dumpster", "month", "year", "date", "weight", "volume", "plastic_bottles", "polystyrene", "cigarette_butts", "glass_bottles", "grocery_bags", "chip_bags", "sports_balls", "homes_powered")
 
-wheel
+head(wheel)
+dim(wheel)
+```
+
+
+```{r}
+# Omit rows that do not include dumpster-specific data
+
+dum_index <- which(!is.na(wheel[,1]))
+length(dum_index)
+
+wheel_clean_dum <- wheel[dum_index,]
+
+head(wheel_clean_dum)
+dim(wheel_clean_dum)
+```
+
+
+```{r}
+# Round the number of sports balls to the nearest integer and converts the result to tan integer variable
+
+wheel_clean_dum[,"sports_balls"] <- round(wheel_clean_dum[,"sports_balls"],digits = 0)
+
+wheel_clean_dum[,"sports_balls"] <- as.integer(unlist(wheel_clean_dum[,"sports_balls"]))
+
+wheel_clean_dum
+```
+
+
+```{r}
+# Read the precipitation data
+
+precip_2017 <- readxl::read_excel("../../data/HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 3) %>%
+  janitor::clean_names() 
+precip_2017
+
+precip_2016 <- readxl::read_excel("../../data/HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 4) %>%
+  janitor::clean_names() 
+precip_2016
+```
+
+
+```{r}
+# Omit rows without precipitation data and add a variable year
+
+prep_2017_index <- which(!is.na(precip_2017[,1]) & !is.na(precip_2017[,2]))
+prep_2016_index <- which(!is.na(precip_2016)[,1] & !is.na(precip_2016[,2]))
+
+precip_2016 <- precip_2016[prep_2016_index,]
+precip_2017 <- precip_2017[prep_2017_index,]
+
+precip_2016$year <- c(rep("2016",dim(precip_2016)[1]))
+precip_2017$year <- c(rep("2017",dim(precip_2017)[1]))
+
 ```
 
 
 
+```{r}
+# Combine datasets and convert month to a character variable
+
+precip_total <- rbind(precip_2016, precip_2017[2:dim(precip_2017)[1],])
+precip_total <- precip_total[2:dim(precip_total)[1],]
+
+precip_total[,1] <- as.numeric(unlist(precip_total[,1]))
+precip_total[,1] <- month.name[unlist(precip_total[,1])]
+
+colnames(precip_total) <- c("month", "precipitation", "year")
+head(precip_total)
+```
+
+
+The observation in 2016 precipitation dataset was "r dim(precip_2016)[1]" and the observation in 2017 precipitation dataset was "r dim(precip_2017)[1]". The number of the resulting dataset, which combined 2016 and 2017 precipitation datasets, are three: two variables month and precipitation were from the original datasets and the variable year was newly added. 
+
+The total precipitation in 2017 was "r sum(precip_2017[,2])". The median number of precipitation in 2016 was"r median(precip_2016[,2])".
 
 
 
+## Problem 3
 
 
+```{r}
+devtools::install_github("p8105/p8105.datasets")
+```
+
+
+```{r}
+# Load the data
+library(p8105.datasets)
+
+data(brfss_smart2010)
+brfss <- janitor::clean_names(brfss_smart2010)
+
+# Focus on the "Overall Health" topic
+overall_health_index <- which(brfss[,"topic"] == "Overall Health")
+brfss <- brfss[overall_health_index,]
+```
+
+
+```{r}
+# Exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation
+
+brfss <- brfss[,c(1:3, 7, 9)]
+brfss_spread <- spread(brfss, key = response, value = data_value) %>%
+  janitor::clean_names()
+
+# Create a new variable showing the proportion of resposnes that were "Excellent" or "Very Good"
+
+brfss_spread$excellent_very_good <- brfss_spread$excellent + brfss_spread$very_good
+
+head(brfss_spread)
+```
+
+
+Answer questions:
+
+(1)
+
+```{r}
+nrow(distinct(brfss_spread, locationdesc))
+nrow(distinct(brfss_spread, locationabbr))
+
+state_summary <- summary(as.factor(brfss_spread$locationabbr))
+max(state_summary)
+```
+
+Totally 404 unique locations were included in the dataset. Every state was represented. NJ was observed the most.
+
+(2)
+???
+```{r}
+year_2002_index <- which(brfss_spread$year == 2002)
+
+brfss_spread_2002 <- brfss_spread[year_2002_index,]
+median(brfss_spread_2002$excellent)  # ???
+
+```
+
+(3)
+
+```{r}
+ggplot(brfss_spread_2002, aes(x = excellent)) +
+  geom_histogram() +
+  theme_bw() 
+```
 
 
 
