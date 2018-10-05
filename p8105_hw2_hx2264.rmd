@@ -192,7 +192,7 @@ brfss_spread <- spread(brfss, key = response, value = data_value) %>%
 
 # Create a new variable showing the proportion of resposnes that were "Excellent" or "Very Good"
 
-brfss_spread$excellent_very_good <- brfss_spread$excellent + brfss_spread$very_good
+brfss_spread$two_responses <- brfss_spread$excellent + brfss_spread$very_good
 
 head(brfss_spread)
 ```
@@ -207,7 +207,7 @@ nrow(distinct(brfss_spread, locationdesc))
 nrow(distinct(brfss_spread, locationabbr))
 
 state_summary <- summary(as.factor(brfss_spread$locationabbr))
-max(state_summary)
+names(which.max(state_summary))
 ```
 
 Totally 404 unique locations were included in the dataset. Every state was represented. NJ was observed the most.
@@ -215,22 +215,42 @@ Totally 404 unique locations were included in the dataset. Every state was repre
 (2)
 ???
 ```{r}
-year_2002_index <- which(brfss_spread$year == 2002)
-
-brfss_spread_2002 <- brfss_spread[year_2002_index,]
-median(brfss_spread_2002$excellent)  # ???
+brfss_exc_2002 <- filter(brfss, response == "Excellent" & year == 2002)
+summary(brfss_exc_2002$data_value)[3]
 
 ```
+
+
 
 (3)
 
 ```{r}
 ggplot(brfss_spread_2002, aes(x = excellent)) +
   geom_histogram() +
-  theme_bw() 
+  labs(
+    title = "Histogram of Excellent response values in 2002",
+    x = "Excellent response values",
+    y = "Frequency",
+    caption = "Data from the p8105.datasets package"
+  )
 ```
 
+(4)
 
+```{r}
+brfss_NY <- filter(brfss_spread, locationdesc == "NY - New York County" | locationdesc == "NY - Queens County")
+
+
+ggplot(brfss_NY, aes(x = year, y = excellent, color = locationdesc)) + 
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Scatterplot of Excellent response values in New York County and Queens County from 2002 to 2010",
+    x = "year",
+    y = "proportion of Excellent response values",
+    caption = "Data from the p8105.datasets package"
+  )
+```
 
 
 
